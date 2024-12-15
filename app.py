@@ -55,6 +55,8 @@ if not geojson_data:
 # Fetch survivor data
 df_survivors = fetch_survivor_data()
 
+df_monsters = fetch_monster_data()
+
 # Identify districts with survivor camps
 if df_survivors is not None:
     districts_with_camps = df_survivors['district'].unique().tolist()
@@ -94,6 +96,14 @@ for feature in selected_features:
 
 # Remove rows with NaN in any selected feature
 df = df.dropna(subset=selected_features)
+
+survivor_count = len(df_survivors) if df_survivors is not None else 0
+monster_count = len(df_monsters) if df_monsters is not None else 0
+
+# Display metrics
+st.header("Key Metrics")
+st.metric(label="Total Survivors", value=survivor_count)
+st.metric(label="Total Monsters", value=monster_count)
 
 # Create feature selection dropdown
 selected_feature = st.selectbox('Select a resource to display:', selected_features)
@@ -161,8 +171,6 @@ if df_survivors is not None:
     overall_bounds[2] = max(overall_bounds[2], survivor_bounds[2])
     overall_bounds[3] = max(overall_bounds[3], survivor_bounds[3])
 
-# Fetch monster data
-df_monsters = fetch_monster_data()
 
 # Update overall_bounds with monster bounds if available
 if df_monsters is not None:
@@ -214,6 +222,11 @@ district_map.add_child(folium.LayerControl())
 # Add colormap to the map
 colormap.add_to(district_map)
 
+survivor_count = len(df_survivors) if df_survivors is not None else 0
+monster_count = len(df_monsters) if df_monsters is not None else 0
+
 # Display the map in Streamlit
 st.subheader("Interactive District Map with Survivor and Monster Markers")
-st_folium(district_map, width=800, height=600)
+
+st_folium(district_map, width=900, height=600)
+
