@@ -5,9 +5,7 @@ from streamlit_folium import st_folium
 import pandas as pd
 import geopandas as gpd
 from folium import LinearColormap
-import numpy as np
 from folium.plugins import MarkerCluster
-import scipy.stats as stats
 
 # Streamlit app title
 st.title("District Map with Survivors and Monsters")
@@ -55,6 +53,7 @@ if not geojson_data:
 # Fetch survivor data
 df_survivors = fetch_survivor_data()
 
+# Fetch monster data
 df_monsters = fetch_monster_data()
 
 # Identify districts with survivor camps
@@ -101,29 +100,32 @@ survivor_count = len(df_survivors) if df_survivors is not None else 0
 monster_count = len(df_monsters) if df_monsters is not None else 0
 
 # Display metrics
-st.header("Key Metrics")
-st.metric(label="Total Survivors", value=survivor_count)
-st.metric(label="Total Monsters", value=monster_count)
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(label="Total Survivors", value=survivor_count)
+
+with col2:
+    st.metric(label="Total Monsters", value=monster_count)
 
 # Create feature selection dropdown
 selected_feature = st.selectbox('Select a resource to display:', selected_features)
 
 # Create color mapping based on selected feature
 if selected_feature == 'temp':
-    colormap = LinearColormap(['lightcoral', 'darkred'], 
-                              vmin=df[selected_feature].min(), 
+    colormap = LinearColormap(['lightcoral', 'darkred'],
+                              vmin=df[selected_feature].min(),
                               vmax=df[selected_feature].max())
 elif selected_feature == 'ammo':
-    colormap = LinearColormap(['#D7C7E3', '#5A2C6C'], 
-                              vmin=df[selected_feature].min(), 
+    colormap = LinearColormap(['#D7C7E3', '#5A2C6C'],
+                              vmin=df[selected_feature].min(),
                               vmax=df[selected_feature].max())
 elif selected_feature == 'water':
-    colormap = LinearColormap(['lightblue', 'darkblue'], 
-                              vmin=df[selected_feature].min(), 
+    colormap = LinearColormap(['lightblue', 'darkblue'],
+                              vmin=df[selected_feature].min(),
                               vmax=df[selected_feature].max())
 elif selected_feature in ['medkits', 'food_rations']:
-    colormap = LinearColormap(['lightgreen', 'darkgreen'], 
-                              vmin=df[selected_feature].min(), 
+    colormap = LinearColormap(['lightgreen', 'darkgreen'],
+                              vmin=df[selected_feature].min(),
                               vmax=df[selected_feature].max())
 
 # Define style function
@@ -171,7 +173,6 @@ if df_survivors is not None:
     overall_bounds[2] = max(overall_bounds[2], survivor_bounds[2])
     overall_bounds[3] = max(overall_bounds[3], survivor_bounds[3])
 
-
 # Update overall_bounds with monster bounds if available
 if df_monsters is not None:
     monster_bounds = get_point_bounds(df_monsters)
@@ -216,17 +217,31 @@ if df_monsters is not None:
             popup=row['monster_id']
         ).add_to(district_map)
 
+# Add input for survivor ID
+survivor_id = st.text_input("Enter Survivor ID:")
+
+if survivor_id:
+    if df_survivors is not None:
+        survivor_data = df_survivors[df_survivors['survivor_id'] == survivor_id]
+        if not survivor_data.empty:
+            survivor_lat = survivor_data.iloc[0]['lat']
+            survivor_lon = survivor_data.iloc[0]['lon']
+            folium.Marker(
+                location=[survivor_lat, survivor_lon],
+                popup="You are here",
+                icon=folium.Icon(color='red', icon='user')
+            ).add_to(district_map)
+        else:
+            st.warning("Survivor ID not found.")
+    else:
+        st.warning("Survivor data not available.")
+
 # Add LayerControl to the map
 district_map.add_child(folium.LayerControl())
 
 # Add colormap to the map
 colormap.add_to(district_map)
 
-survivor_count = len(df_survivors) if df_survivors is not None else 0
-monster_count = len(df_monsters) if df_monsters is not None else 0
-
 # Display the map in Streamlit
 st.subheader("Interactive District Map with Survivor and Monster Markers")
-
 st_folium(district_map, width=900, height=600)
-
